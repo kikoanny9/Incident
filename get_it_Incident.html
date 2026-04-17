@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Get User ID - ระบบ Incident</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Mitr', sans-serif; 
+            text-align: center; 
+            background-color: #fdf8f6; /* โทนสีอุ่นสำหรับ Incident */
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ของตกแต่งพื้นหลัง */
+        .ambient-blob { position: absolute; border-radius: 50%; filter: blur(60px); z-index: -1; opacity: 0.6; }
+        .blob-1 { top: -10%; left: -10%; width: 400px; height: 400px; background: #ffedd5; }
+        .blob-2 { bottom: -10%; right: -10%; width: 500px; height: 500px; background: #fee2e2; }
+
+        /* Responsive Container */
+        .liff-container { 
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 35px 25px; 
+            border-radius: 30px; 
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.1); 
+            width: 90%;
+            max-width: 380px; 
+            z-index: 1;
+        }
+        
+        .title-icon { font-size: 45px; color: #ef4444; margin-bottom: 15px; }
+        h2 { color: #0f172a; margin: 0 0 5px 0; font-size: 22px; font-weight: 600; }
+        p.subtitle { color: #64748b; font-size: 14px; margin-bottom: 25px; }
+
+        .btn-liff { 
+            background: #ef4444; 
+            color: white; 
+            border: none; 
+            padding: 14px 24px; 
+            font-size: 16px; 
+            border-radius: 14px; 
+            cursor: pointer; 
+            width: 100%; 
+            font-weight: 500; 
+            font-family: 'Mitr', sans-serif;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+        }
+        .btn-liff:hover { background: #dc2626; transform: translateY(-2px); }
+        .btn-liff.success-state { 
+            background: #10b981; 
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+            pointer-events: none; 
+        }
+
+        .result-box { 
+            margin-top: 25px; 
+            padding: 20px 15px; 
+            background: rgba(255, 255, 255, 0.95); 
+            border: 1px dashed #cbd5e1; 
+            border-radius: 20px; 
+            animation: fadeIn 0.4s ease;
+        }
+        
+        .user-id-text { 
+            color: #ef4444; 
+            word-break: break-all; 
+            margin: 12px 0; 
+            font-family: monospace;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        /* ปุ่มคัดลอก */
+        .copy-btn {
+            background: white;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Mitr', sans-serif;
+            font-weight: 500;
+        }
+        .copy-btn:hover { background: #f8fafc; color: #0f172a; border-color: #94a3b8; }
+        .copy-btn.copied { background: #10b981; color: white; border-color: #10b981; }
+
+        .error-text { color: #ef4444; margin-top: 15px; font-size: 13px; }
+        .d-none { display: none; }
+        .d-block { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="ambient-blob blob-1"></div>
+    <div class="ambient-blob blob-2"></div>
+
+    <div class="liff-container">
+        <i class="fa-solid fa-triangle-exclamation title-icon"></i>
+        <h2>รหัสแอดมิน Incident</h2>
+        <p class="subtitle">ระบบจัดการอุบัติการณ์ โรงพยาบาลบ้านไร่</p>
+        
+        <button id="btnLog" class="btn-liff"><i class="fa-solid fa-fingerprint me-2"></i> แสดงรหัสประจำตัวของฉัน</button>
+
+        <div id="resultArea" class="result-box d-none">
+            <div style="color: #10b981; font-weight: 600; font-size: 14px;"><i class="fa-solid fa-check-circle me-1"></i> ดึงข้อมูลสำเร็จ!</div>
+            <div id="userId" class="user-id-text"></div>
+            
+            <button id="copyBtn" class="copy-btn">
+                <i class="fa-regular fa-copy me-1"></i> คัดลอก ID
+            </button>
+            <div style="font-size: 12px; color: #64748b; margin-top: 10px;">(นำรหัสนี้ไปตั้งค่าในระบบ Incident)</div>
+        </div>
+
+        <div id="errorLog" class="error-text"></div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            async function main() {
+                if (typeof liff === 'undefined') {
+                    document.getElementById("errorLog").innerText = "ไม่สามารถเชื่อมต่อระบบของ LINE ได้ กรุณาเปิดผ่านแอปพลิเคชัน LINE";
+                    return;
+                }
+
+                try {
+                    // 🚨 LIFF ID ของระบบ Incident 🚨
+                    await liff.init({ liffId: "2009818742-NAecYE1w" }); 
+
+                    if (!liff.isLoggedIn()) {
+                        liff.login();
+                    } else {
+                        const btnLog = document.getElementById("btnLog");
+                        const copyBtn = document.getElementById("copyBtn");
+                        
+                        if(btnLog) {
+                            btnLog.addEventListener('click', async () => {
+                                try {
+                                    const profile = await liff.getProfile();
+                                    const uid = profile.userId;
+                                    
+                                    // โชว์ ID บนหน้าจอ
+                                    document.getElementById("userId").innerText = uid;
+                                    
+                                    const resultArea = document.getElementById("resultArea");
+                                    resultArea.classList.remove("d-none");
+                                    resultArea.classList.add("d-block");
+                                    
+                                    // เปลี่ยนสถานะปุ่มหลัก
+                                    btnLog.classList.add("success-state");
+                                    btnLog.innerHTML = '<i class="fa-solid fa-check me-2"></i> ดึงข้อมูลเรียบร้อย';
+                                    
+                                    // ฟังก์ชันสำหรับปุ่มคัดลอก (Copy)
+                                    copyBtn.addEventListener('click', () => {
+                                        navigator.clipboard.writeText(uid).then(() => {
+                                            copyBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> คัดลอกแล้ว!';
+                                            copyBtn.classList.add('copied');
+                                            
+                                            // คืนค่าปุ่มเดิมหลังจากผ่านไป 2 วินาที
+                                            setTimeout(() => {
+                                                copyBtn.innerHTML = '<i class="fa-regular fa-copy me-1"></i> คัดลอก ID';
+                                                copyBtn.classList.remove('copied');
+                                            }, 2000);
+                                        }).catch(err => {
+                                            console.error('Failed to copy text: ', err);
+                                            alert("ไม่สามารถคัดลอกได้อัตโนมัติ กรุณาก๊อปปี้ด้วยตัวเอง");
+                                        });
+                                    });
+
+                                } catch (err) {
+                                    // ปลดการเด้งลูปนรกออก โชว์ Error ตรงๆ
+                                    console.error("Profile Error: ", err);
+                                    document.getElementById("errorLog").innerText = "เกิดข้อผิดพลาด: โปรดตรวจสอบว่าเปิดสิทธิ์ profile ใน LINE Developers หรือยัง";
+                                }
+                            });
+                        }
+                    }
+                } catch (err) {
+                    document.getElementById("errorLog").innerText = "Init Error: " + err.message;
+                }
+            }
+            
+            main();
+        });
+    </script>
+</body>
+</html>
